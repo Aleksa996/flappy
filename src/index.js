@@ -1,39 +1,32 @@
 import Phaser from 'phaser';
-import logoImg from './assets/logo.png';
+import PlayScene from './scenes/PlayScene';
+import MenuScene from "./scenes/MenuScene";
+import PreloadScene from './scenes/PreloadScene';
 
-class MyGame extends Phaser.Scene
-{
-    constructor ()
-    {
-        super();
-    }
+const WIDTH = 800;
+const HEIGHT = 600;
+const BIRD_POSITION = {x: WIDTH * 0.1, y: HEIGHT / 2 };
 
-    preload ()
-    {
-        this.load.image('logo', logoImg);
-    }
-      
-    create ()
-    {
-        const logo = this.add.image(400, 150, 'logo');
-      
-        this.tweens.add({
-            targets: logo,
-            y: 450,
-            duration: 2000,
-            ease: "Power2",
-            yoyo: true,
-            loop: -1
-        });
-    }
+const SHARED_CONFIG = {
+  width: WIDTH,
+  height: HEIGHT,
+  startPosition: BIRD_POSITION
 }
 
-const config = {
-    type: Phaser.AUTO,
-    parent: 'phaser-example',
-    width: 800,
-    height: 600,
-    scene: MyGame
-};
+const Scenes = [PreloadScene,MenuScene,PlayScene];
+const createScene = Scene => new Scene(SHARED_CONFIG);
+const initScene = () => Scenes.map(createScene);
 
-const game = new Phaser.Game(config);
+const config = {
+  type: Phaser.AUTO,
+  ...SHARED_CONFIG,
+  physics: {
+    default: 'arcade',
+    arcade: {
+      debug: true,
+    }
+  },
+  scene: initScene()
+}
+
+new Phaser.Game(config);
