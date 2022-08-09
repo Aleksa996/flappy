@@ -1,12 +1,11 @@
-import Phaser from 'phaser';
+import BaseScene from './BaseScene';
 
 const PIPES_TO_RENDER = 4;
 
-class PlayScene extends Phaser.Scene {
+class PlayScene extends BaseScene {
 
   constructor(config) {
-    super('PlayScene');
-    this.config = config;
+    super('PlayScene', config);
 
     this.bird = null;
     this.pipes = null;
@@ -17,22 +16,36 @@ class PlayScene extends Phaser.Scene {
     this.flapVelocity = 300;
 
     this.score = 0;
-    this.scoreText = "";
+    this.scoreText = '';
   }
 
   create() {
-    this.createBG();
+    super.create();
     this.createBird();
     this.createPipes();
+    this.createColliders();
     this.createScore();
     this.createPause();
-    this.createColliders();
     this.handleInputs();
+    this.listenToEvents();
   }
 
   update() {
     this.checkGameStatus();
     this.recyclePipes();
+  }
+
+  listenToEvents() {
+    this.events.on('resume', () => {
+      this.initialTime = 3;
+      this.countDownText = this.add.text(...this.screenCenter, 'Fly in: ' + this.initialTime, this.fontOptions).setOrigin(0.5);
+      this.timedEvent = this.time.addEvent({
+        delay: 1000,
+        callback: () => console.log(this.initialTime--),
+        callbackScope: this,
+        loop: true
+      })
+    })
   }
 
   createBG() {
@@ -50,11 +63,11 @@ class PlayScene extends Phaser.Scene {
 
     for (let i = 0; i < PIPES_TO_RENDER; i++) {
       const upperPipe = this.pipes.create(0, 0, 'pipe')
-      .setImmovable(true)
-      .setOrigin(0, 1);
+        .setImmovable(true)
+        .setOrigin(0, 1);
       const lowerPipe = this.pipes.create(0, 0, 'pipe')
-      .setImmovable(true)
-      .setOrigin(0, 0);
+        .setImmovable(true)
+        .setOrigin(0, 0);
 
       this.placePipe(upperPipe, lowerPipe)
     }
@@ -66,24 +79,24 @@ class PlayScene extends Phaser.Scene {
     this.physics.add.collider(this.bird, this.pipes, this.gameOver, null, this);
   }
 
-  createScore(){
-      this.score = 0;
-      const bestScore = localStorage.getItem("bestScore");
-      this.scoreText = this.add.text(16,16, "Score:" + this.score,{fontSize: "32px", fill: "#000"});
-      this.add.text(16,52,"Best Score: " + bestScore,{fontSize:"18px", fill: "#000"})
+  createScore() {
+    this.score = 0;
+    const bestScore = localStorage.getItem('bestScore');
+    this.scoreText = this.add.text(16, 16, `Score: ${0}`, { fontSize: '32px', fill: '#000'});
+    this.add.text(16, 52, `Best score: ${bestScore || 0}`, { fontSize: '18px', fill: '#000'});
   }
 
-  createPause(){
-      const pauseButton = this.add.image(this.config.width - 10,this.config.height - 10,"pause")
+  createPause() {
+    const pauseButton = this.add.image(this.config.width - 10, this.config.height -10, 'pause')
+      .setInteractive()
       .setScale(3)
       .setOrigin(1);
 
-      pauseButton.setInteractive();
-
-      pauseButton.on("pointerdown", () => {
-          this.physics.pause();
-          this.scene.pause();
-      })
+    pauseButton.on('pointerdown', () => {
+      this.physics.pause();
+      this.scene.pause();
+      this.scene.launch('PauseScene');
+    })
   }
 
   handleInputs() {
@@ -117,7 +130,8 @@ class PlayScene extends Phaser.Scene {
         tempPipes.push(pipe);
         if (tempPipes.length === 2) {
           this.placePipe(...tempPipes);
-          this.increseScore();
+          this.increaseScore();
+          this.saveBestScore();
         }
       }
     })
@@ -133,23 +147,27 @@ class PlayScene extends Phaser.Scene {
     return rightMostX;
   }
 
-  gameOver() {
-    this.physics.pause();
-    this.bird.setTint(0xEE4842);
-
-    const bestScoreText = localStorage.getItem("bestScore");
+  saveBestScore() {
+    const bestScoreText = localStorage.getItem('bestScore');
     const bestScore = bestScoreText && parseInt(bestScoreText, 10);
 
-    if(!bestScore || this.score > bestScore){
-        localStorage.setItem("bestScore",this.score);
+    if (!bestScore || this.score > bestScore) {
+      localStorage.setItem('bestScore', this.score);
     }
+  }
+
+  gameOver() {
+    this.physics.pause();
+    this.bird.setTint(0xEE4824);
+
+    this.saveBestScore();
 
     this.time.addEvent({
-        deley: 1000,
-        callback: () => {
-            this.scene.restart();
-        },
-        loop:false
+      delay: 1000,
+      callback: () => {
+        this.scene.restart();
+      },
+      loop: false
     })
   }
 
@@ -157,11 +175,10 @@ class PlayScene extends Phaser.Scene {
     this.bird.body.velocity.y = -this.flapVelocity;
   }
 
-  increseScore(){
-      this.score++;
-      this.scoreText.setText("Score:" + this.score);
+  increaseScore() {
+    this.score++;
+    this.scoreText.setText(`Score: ${this.score}`)
   }
-
 }
 
 export default PlayScene;
